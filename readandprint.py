@@ -3,6 +3,8 @@ import re
 # importing sql library
 from sqlalchemy import create_engine
 from sqlalchemy import text
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 
@@ -132,15 +134,38 @@ def main():
     engine = create_engine('sqlite://',
                        echo=True)
     
-    department_df.to_sql('Employee_Information',
+    department_df.to_sql('Department_Information',
+               con=engine)
+    employee_df.to_sql('Employee_Information',
+               con=engine)
+    student_df.to_sql('Student_Counseling_Information',
+               con=engine)
+    performance_df.to_sql('Student_Performance_Data',
                con=engine)
     
+    ###Extra validation to ensure marks are only within 0-100%
+    performance_df['Marks'] = performance_df['Marks'].apply(lambda x: min(x, 100))
+    performance_df['Marks'] = performance_df['Marks'].round(0).fillna(0).astype(int)
+
         # Obtain a connection
     with engine.connect() as connection:
      result = connection.execute(text("SELECT * FROM Employee_Information"))
      print(result.fetchall())
-     print(result[0][1])
+ 
+
+    ###Descriptive Analytics
+    # 1. Statistical Summaries
+    print("Performance DF Statistical Summary: ")
+
+    print(performance_df.describe())
+
+    print("Employee DF Statistical Summary: ")
+
+    print(employee_df.describe(include=['O']))
+
+     ###Predictive Analytics
     
+
  
 
 
