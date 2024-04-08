@@ -1,5 +1,10 @@
 import pandas as pd
 import re
+# importing sql library
+from sqlalchemy import create_engine
+from sqlalchemy import text
+
+
 
 # Define column names for each CSV file
 department_columns = ['Department_ID', 'Department_Name', 'DOE']
@@ -59,6 +64,11 @@ def find_effort_hours(df: pd.DataFrame, mark_value: str) -> pd.DataFrame:
     print(len(filtered_df))
     return columns_with_xx
 
+
+
+
+
+
 def main():
     # Load data from CSV files into DataFrames
     department_df = pd.read_csv(r"Department_Information.csv", names=department_columns)
@@ -73,6 +83,10 @@ def main():
     student_df = validate_clean_data(student_df)
     performance_df = validate_clean_data(performance_df)
     print("------------------")
+
+
+
+  
     
     # Perform joins based on foreign keys
     employee_department_df = pd.merge(employee_df, department_df, on='Department_ID', how='left')
@@ -113,7 +127,21 @@ def main():
     else:
         print("No columns with 'Effort_Hours' entered as 'XX' found.")
     
+    ###data mining
 
+    engine = create_engine('sqlite://',
+                       echo=True)
+    
+    department_df.to_sql('Employee_Information',
+               con=engine)
+    
+        # Obtain a connection
+    with engine.connect() as connection:
+     result = connection.execute(text("SELECT * FROM Employee_Information"))
+     print(result.fetchall())
+     print(result[0][1])
+    
+ 
 
 
 
