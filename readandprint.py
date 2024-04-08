@@ -1,3 +1,9 @@
+###
+# COMP-4522 Assignment 3
+# Aldo Ortiz and Iyan Velji
+# Dr. Orestes Appel 
+###
+
 import pandas as pd
 import re
 # importing sql library
@@ -5,6 +11,9 @@ from sqlalchemy import create_engine
 from sqlalchemy import text
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 
 
@@ -145,8 +154,10 @@ def main():
     
     ###Extra validation to ensure marks are only within 0-100%
     performance_df['Marks'] = performance_df['Marks'].apply(lambda x: min(x, 100))
-    performance_df['Marks'] = performance_df['Marks'].round(0).fillna(0).astype(int)
-
+    performance_df['Marks'] = performance_df['Marks'].replace([np.inf, -np.inf], np.nan)  # Replace inf with NaN
+    performance_df['Marks'] = performance_df['Marks'].round(0).fillna(0)
+    performance_df['Marks'] = performance_df['Marks'].astype(int)
+    print(performance_df['Marks'])
         # Obtain a connection
     with engine.connect() as connection:
      result = connection.execute(text("SELECT * FROM Employee_Information"))
@@ -154,7 +165,7 @@ def main():
  
 
     ###Descriptive Analytics
-    # 1. Statistical Summaries
+    #Statistical Summaries
     print("Performance DF Statistical Summary: ")
 
     print(performance_df.describe())
@@ -163,13 +174,56 @@ def main():
 
     print(employee_df.describe(include=['O']))
 
-     ###Predictive Analytics
-    
+    #Violin Plot
+    sns.violinplot(x='Marks', data=performance_df, color='red')
+    plt.title('Distribution of Marks')
+    plt.xlabel('Marks')
+    plt.ylabel('Density')
+    plt.show()
 
- 
+    # Histogram of marks
+    performance_df['Marks'].hist(bins=20)
+    plt.title('Histogram of Marks')
+    plt.show()
+
+    # Box plot
+    sns.boxplot(x='Marks', data=performance_df)
+    plt.title('Box Plot of Marks')
+    plt.show()
+
+    ###Predictive Analytics
+    performance_df['Effort_Hours_Next'] = 10
+
+    # Marks Avg
+    performance_df['Marks_avg'] = performance_df.groupby('Student_ID')['Marks'].transform('mean')
+
+    X = performance_df[['Effort_Hours_Next', 'Marks_avg']]
+    y = performance_df['Marks']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Initializing and training the linear regression model
+    model = LinearRegression()
+    model.fit(X_train, y_train) 
+
+    #Using the linear regression model
+    students_to_predict = ['SID20131151', 'SID20149500', 'SID20182516']
 
 
+    # Filter the average marks for tudents
+    avg_marks = performance_df.groupby('Student_ID')['Marks'].mean().reset_index()
 
+    students_avg_marks = avg_marks[avg_marks['Student_ID'].isin(students_to_predict)]
+
+    # Assuming an effort of 10 hours for the next paper
+    students_avg_marks['Effort_Hours_Next'] = 10
+    students_avg_marks = students_avg_marks.merge(performance_df[['Student_ID', 'Marks_avg']].drop_duplicates(), on='Student_ID', how='left')
+    # Predict using the model
+   
+    predictions = model.predict(students_avg_marks[['Effort_Hours_Next', 'Marks_avg']])
+
+    # Print predictions
+    for student_id, prediction in zip(students_to_predict, predictions):
+        print(f"Student ID: {student_id}, Predicted Marks: {prediction:.2f}")
 
 
 main()
